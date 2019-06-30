@@ -49,7 +49,7 @@ urlpatterns = [
                 PasswordChangeDoneView.as_view(),
                 name='password_change_done'
         ),
-        path('reset-password', shafeayresetview.as_view(), name='reset_password'),
+        path('reset-password', PasswordResetView.as_view(), name='reset_password'),
         path('reset-password/done',
                 PasswordResetDoneView.as_view(),
                 name='password_reset_done'
