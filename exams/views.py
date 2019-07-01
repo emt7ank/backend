@@ -43,7 +43,6 @@ class RetrieveUpdateDestroyExam(generics.RetrieveUpdateDestroyAPIView):
 class ListCreateMCQ(generics.ListCreateAPIView):
 	permission_classes = (
 		IsAuthenticated,
-		IsTeacher,
 	)
 	queryset = MCQ.objects.all()
 	serializer_class = MCQSerializer
@@ -56,7 +55,6 @@ class ListCreateMCQ(generics.ListCreateAPIView):
 class RetrieveUpdateDestroyMCQ(generics.RetrieveUpdateDestroyAPIView):
 	permission_classes = (
 		IsAuthenticated,
-		IsTeacher,
 	)
 	queryset = MCQ.objects.all()
 	serializer_class = MCQSerializer
@@ -99,7 +97,6 @@ class MCQModelViewSet(
 ):
 	permission_classes = (
 		IsAuthenticated,
-		IsTeacher,
 	)
 	queryset = MCQ.objects.all()
 	serializer_class = MCQSerializer

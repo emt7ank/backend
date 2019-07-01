@@ -262,6 +262,11 @@ class UserSerializer(ModelSerializer):
 		profile_data = validated_data['profile']
 
 		## conditions to complete the empty fields
+		if profile_data.get('is_teacher'):
+			p_is_teacher = profile_data['is_teacher']
+		else:
+			p_is_teacher = False
+
 		if profile_data.get('bio'):
 			p_bio = profile_data['bio']
 		else:
@@ -303,7 +308,7 @@ class UserSerializer(ModelSerializer):
 		user.save()
 		profile = Profile.objects.create(
 			user=user,
-			is_teacher = profile_data['is_teacher'],
+			is_teacher = p_is_teacher,
 			bio = p_bio,
 			career = p_career,
 			location = p_location,
