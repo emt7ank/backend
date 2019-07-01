@@ -4,8 +4,9 @@ from rest_framework.serializers	import (
 	HyperlinkedRelatedField,
 	IntegerField,
 	CharField,
+	Serializer,
 	)
-from .models import Exam, MCQ, FinishedExams, TakeLaterExams
+from .models import Exam, MCQ, FinishedExams, TakeLaterExams, Profile
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
@@ -212,11 +213,20 @@ class TakeLaterExamsSerializer(ModelSerializer):
 	def get_added_at(self, obj):
 		return obj.added_at.strftime("%d/%m/%Y %H:%M")	
 
+class ProfileSerializer(ModelSerializer):
+	bio = CharField(required=False)
+	class Meta:
+		exclude = ['id']
+		read_only_fields = ('user',)
+		model = Profile
+
 class UserSerializer(ModelSerializer):
 	latest_result = SerializerMethodField()
 	finished_exams = FinishedExamsSerializer(many=True, default=None)
 	take_later_exams = TakeLaterExamsSerializer(many=True, read_only=True)
-
+	profile = ProfileSerializer()
+	password=CharField(required=False)
+	username=CharField(required=False)	
 	class Meta:
 		fields = (	'id',
 					'username',
@@ -224,15 +234,15 @@ class UserSerializer(ModelSerializer):
 					'password',
 					'first_name',
 					'last_name',
+					'profile',
 					'finished_exams',
 					'take_later_exams',
 					'latest_result',
 
 		)
 		model = User
-		read_only_fields = ('id', 'finished_exams', 'latest_result')
-		write_only_fields = ('password',)
-
+		read_only_fields = ('id', 'finished_exams', 'latest_result',)
+		write_only_fields = ('password')
 
 	def get_latest_result(self, obj):
 		try:
@@ -249,15 +259,124 @@ class UserSerializer(ModelSerializer):
 
 
 	def create(self, validated_data):
+		profile_data = validated_data['profile']
+
+		## conditions to complete the empty fields
+		if profile_data.get('bio'):
+			p_bio = profile_data['bio']
+		else:
+			p_bio = ""
+		
+		if profile_data.get('career'):
+			p_career = profile_data['career']
+		else:
+			p_career = ""
+		
+		if profile_data.get('location'):
+			p_location = profile_data['location']
+		else:
+			p_location = ""
+		
+		if profile_data.get('birth_date'):
+			p_birth_date = profile_data['birth_date']
+		else:
+			p_birth_date = None
+		
+		if profile_data.get('phone_number'):
+			p_phone_number = profile_data['phone_number']
+		else:
+			p_phone_number = ""
+		
+		if profile_data.get('avatar'):
+			p_avatar = profile_data['avatar']
+		else:
+			p_avatar = "blank_avatar.png"
+
+
 		user = User.objects.create(
 			username=validated_data['username'],
 			email=validated_data['email'],
 			first_name=validated_data['first_name'],
 			last_name=validated_data['last_name']
 		)
-
 		user.set_password(validated_data['password'])
 		user.save()
+		profile = Profile.objects.create(
+			user=user,
+			is_teacher = profile_data['is_teacher'],
+			bio = p_bio,
+			career = p_career,
+			location = p_location,
+			birth_date = p_birth_date,
+			phone_number = p_phone_number,
+			avatar = p_avatar,
+		)
+		profile.save()
 		token = Token.objects.create(user=user)
-		# finished_exams = FinishedExams.objects.get(user=user)
 		return user
+		# finished_exams = FinishedExams.objects.get(user=user)
+		# profile.is_teacher = profile_data.is_teacher
+		# profile.bio = profile_data.bio
+			# location=profile_data.location,
+			# career=profile_data.career,
+			# birth_date=profile_data.birth_date,
+			# phone_number=profile_data.phone_number,
+			# avatar=profile_data.avatar,
+
+
+	def update(self, instance, validated_data):
+		instance.email = validated_data.get('email', instance.email)
+		instance.first_name = validated_data.get('first_name', instance.first_name)
+		instance.last_name = validated_data.get('last_name', instance.last_name)
+		profile_data = validated_data['profile']
+
+	 # conditions to complete the empty fields
+		if profile_data.get('bio'):
+			p_bio = profile_data['bio']
+		else:
+			p_bio = ""
+		
+		if profile_data.get('career'):
+			p_career = profile_data['career']
+		else:
+			p_career = ""
+		
+		if profile_data.get('location'):
+			p_location = profile_data['location']
+		else:
+			p_location = ""
+		
+		if profile_data.get('birth_date'):
+			p_birth_date = profile_data['birth_date']
+		else:
+			p_birth_date = None
+		
+		if profile_data.get('phone_number'):
+			p_phone_number = profile_data['phone_number']
+		else:
+			p_phone_number = ""
+		
+		if profile_data.get('avatar'):
+			p_avatar = profile_data['avatar']
+		else:
+			p_avatar = "blank_avatar.png"
+	 #
+		instance.profile.bio = p_bio
+		instance.profile.location = p_location
+		instance.profile.career = p_career
+		instance.profile.birth_date = p_birth_date
+		instance.profile.phone_number = p_phone_number
+		instance.profile.avatar = p_avatar
+		instance.save()
+		# finished_exams = FinishedExams.objects.get(user=user)
+		return instance
+
+class PasswordSerializer(Serializer):
+	old_password = CharField(required=True)
+	new_password = CharField(required=True)
+
+
+	# def update(self, instance, validated_data):
+	# 	instance.set_password(validated_data['password'])
+	# 	instance.save()
+	# 	return instance

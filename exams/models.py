@@ -2,6 +2,8 @@ from django.urls import reverse
 from django.db import models
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Exam(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -81,3 +83,14 @@ class TakeLaterExams(models.Model):
 
 	class Meta:
 		ordering = ['-added_at']
+
+
+class Profile(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE)
+	bio = models.TextField(blank=True)
+	location = models.CharField(max_length=255, blank=True)
+	career = models.CharField(max_length=255, blank=True)
+	birth_date = models.DateField(null=True, blank=True)
+	is_teacher = models.BooleanField(default=False)
+	phone_number = models.CharField(max_length=14, blank=True)
+	avatar = models.ImageField(upload_to='personal/%y/%m/', default="blank_avatar.png")

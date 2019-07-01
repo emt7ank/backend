@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
 
-from .models import Exam, MCQ, FinishedExams, TakeLaterExams
+from .models import Exam, MCQ, FinishedExams, TakeLaterExams, Profile
 
 class MCQTabularInline(admin.TabularInline):
 	model = MCQ
@@ -22,8 +22,11 @@ class FinishedExamsInline(admin.StackedInline):
 class TakeLaterExamsInline(admin.StackedInline):
 	model = TakeLaterExams
 
+class ProfileInline(admin.StackedInline):
+	model = Profile
+
 class UserAdmin(BaseUserAdmin):
-	inlines = [FinishedExamsInline, TakeLaterExamsInline]
+	inlines = [ProfileInline, FinishedExamsInline, TakeLaterExamsInline]
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)

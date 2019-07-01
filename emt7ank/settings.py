@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'django_rest_passwordreset',
     'exams',
     'corsheaders',
 ]
@@ -160,9 +159,6 @@ config.read(os.path.join(BASE_DIR, 'config.ini'))
 DEBUG = config.getboolean("global", "DEBUG")
 ALLOWED_HOSTS = config.get('hosts', 'allowed')
 SECRET_KEY = config.get('secrets', 'SECRET_KEY')
-
-
-DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 2
 
 
 
