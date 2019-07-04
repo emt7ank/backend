@@ -34,7 +34,6 @@ class ListCreateExam(generics.ListCreateAPIView):
 class RetrieveUpdateDestroyExam(generics.RetrieveUpdateDestroyAPIView):
 	permission_classes = (
 		IsAuthenticated,
-		IsTeacher,
 	)		
 	queryset = Exam.objects.all()
 	serializer_class = ExamSerializer
@@ -71,7 +70,6 @@ class RetrieveUpdateDestroyMCQ(generics.RetrieveUpdateDestroyAPIView):
 class ExamModelViewSet(viewsets.ModelViewSet):
 	permission_classes = (
 		IsAuthenticated,
-		IsTeacher,
 	)
 	queryset = Exam.objects.all()
 	serializer_class = ExamSerializer
