@@ -163,7 +163,9 @@ class FinishedExamsSerializer(ModelSerializer):
 	exam_url = SerializerMethodField()
 	exam = SerializerMethodField()
 	taken_at = SerializerMethodField()
-
+	full_mark = SerializerMethodField()
+	exam_pk = IntegerField(required=False)
+	
 	class Meta:
 		fields = (
 			'exam',
@@ -171,12 +173,13 @@ class FinishedExamsSerializer(ModelSerializer):
 			'taken_at',
 			'result',
 			'full_mark',
+			'exam_pk'
 		)
 		model = FinishedExams
-
+	
 	def get_exam(self, obj):
 		try:
-			test = Exam.objects.get(pk=obj.pk)
+			test = Exam.objects.get(pk=obj.exam.pk)
 			res = test.subject
 		except Exam.DoesNotExist:
 			res = None
@@ -184,8 +187,16 @@ class FinishedExamsSerializer(ModelSerializer):
 
 	def get_exam_url(self, obj):
 		try:
-			test = Exam.objects.get(pk=obj.pk)
-			res = test.subject
+			test = Exam.objects.get(pk=obj.exam.pk)
+			res = test.get_absolute_url()
+		except Exam.DoesNotExist:
+			res = None
+		return res
+
+	def get_full_mark(self, obj):
+		try:
+			test = Exam.objects.get(pk=obj.exam.pk)
+			res = test.full_mark
 		except Exam.DoesNotExist:
 			res = None
 		return res
@@ -195,23 +206,44 @@ class FinishedExamsSerializer(ModelSerializer):
 
 class TakeLaterExamsSerializer(ModelSerializer):
 	exam = SerializerMethodField()
+	exam_url = SerializerMethodField()
 	added_at = SerializerMethodField()
+	
 	class Meta:
 		fields = (
 			'exam',
+			'exam_url',
 			'added_at',
 		)
 		model = TakeLaterExams
 	def get_exam(self, obj):
 		try:
-			test = Exam.objects.get(pk=obj.pk)
+			test = Exam.objects.get(pk=obj.exam.pk)
 			res = test.subject
 		except Exam.DoesNotExist:
 			res = None
 		return res
 
+	def get_exam_url(self, obj):
+		try:
+			test = Exam.objects.get(pk=obj.exam.pk)
+			res = test.get_absolute_url()
+		except Exam.DoesNotExist:
+			res = None
+		return res
+
+
 	def get_added_at(self, obj):
 		return obj.added_at.strftime("%d/%m/%Y %H:%M")	
+
+
+
+class AddFininshedExamsSerializer(Serializer):
+	result = IntegerField(required=True)
+	exam_pk = IntegerField(required=True)
+
+class AddTakeLaterExamsSerializer(Serializer):
+	exam_pk = IntegerField(required=True)
 
 class ProfileSerializer(ModelSerializer):
 	bio = CharField(required=False)
@@ -379,9 +411,3 @@ class UserSerializer(ModelSerializer):
 class PasswordSerializer(Serializer):
 	old_password = CharField(required=True)
 	new_password = CharField(required=True)
-
-
-	# def update(self, instance, validated_data):
-	# 	instance.set_password(validated_data['password'])
-	# 	instance.save()
-	# 	return instance

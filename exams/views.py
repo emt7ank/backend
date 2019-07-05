@@ -11,7 +11,16 @@ from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from .models import Exam, MCQ, FinishedExams, TakeLaterExams
-from .serializers import ExamSerializer, MCQSerializer, UserSerializer, PasswordSerializer
+from .serializers import (
+		ExamSerializer,
+		MCQSerializer,
+		UserSerializer,
+		PasswordSerializer,
+		FinishedExamsSerializer,
+		TakeLaterExamsSerializer,
+		AddFininshedExamsSerializer,
+		AddTakeLaterExamsSerializer,
+)
 from django.contrib.auth.models import User
 
 ## to fiind out it he is a teacher or not
@@ -86,16 +95,15 @@ class ExamModelViewSet(viewsets.ModelViewSet):
 # operation should be included in the apiview (we deleted the listModel of mcqs)
 # we didn't want just to list all the mcqs of all the exams that exist
 # on the website in one page .. it would have been messy
+
 class MCQModelViewSet(
 			mixins.CreateModelMixin,
 			mixins.RetrieveModelMixin,
 			mixins.UpdateModelMixin,
 			mixins.DestroyModelMixin,
-			viewsets.GenericViewSet
-):
-	permission_classes = (
-		IsAuthenticated,
-	)
+			viewsets.GenericViewSet,
+			):
+	permission_classes = (IsAuthenticated,)
 	queryset = MCQ.objects.all()
 	serializer_class = MCQSerializer
 
@@ -121,3 +129,59 @@ class UserViewSet(viewsets.ModelViewSet):
 
 		return Response(serializer.errors,
 			status=status.HTTP_400_BAD_REQUEST)
+
+
+	@detail_route(methods=['get', 'post'], url_path='finished-exams')
+	def finished_exams(self, request, pk=None):
+		user = self.get_object()
+
+		if request.method == 'GET':
+			serializer = FinishedExamsSerializer(
+				FinishedExams.objects.filter(user=user), many=True)
+			return Response(serializer.data)
+		
+		else:
+			serializer = AddFininshedExamsSerializer(data=request.data)
+			if serializer.is_valid():
+				exam_pk = serializer.data.get('exam_pk')
+				c_exam = Exam.objects.get(pk=exam_pk)
+				test = FinishedExams.objects.create(
+					user=user,
+					exam=c_exam,
+					result=serializer.data.get('result'),
+					full_mark=c_exam.full_mark
+				)
+				test.save()
+				return Response(
+					{'status': 'the exam has beed added to your finished exams'},
+					status=status.HTTP_200_OK
+				)
+
+		return Response(serializer.errors,
+				status=status.HTTP_400_BAD_REQUEST)
+
+
+	@detail_route(methods=['get', 'post'], url_path='take-later-exams')
+	def take_later_exams(self, request, pk=None):
+		user = self.get_object()
+
+		if request.method == 'GET':
+			serializer = TakeLaterExamsSerializer(
+				TakeLaterExams.objects.filter(user=user), many=True)
+			return Response(serializer.data)
+		
+		else:
+			serializer = AddTakeLaterExamsSerializer(data=request.data)
+			if serializer.is_valid():
+				test = TakeLaterExams.objects.create(
+					user=user,
+					exam=Exam.objects.get(pk=serializer.data.get('exam_pk')),
+				)
+				test.save()
+				return Response(
+					{'status': 'the exam has beed added to your Take Later list'},
+					status=status.HTTP_200_OK
+				)
+
+		return Response(serializer.errors,
+				status=status.HTTP_400_BAD_REQUEST)
