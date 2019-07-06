@@ -11,7 +11,6 @@ class Exam(models.Model):
 	category = models.CharField(max_length=255)
 	subject = models.CharField(default='', max_length=255)
 	time = models.IntegerField()
-	full_mark = models.IntegerField(default=100)
 	
 
 
@@ -21,15 +20,6 @@ class Exam(models.Model):
 	def get_absolute_url(self):
 		relative = reverse("exam_detail", kwargs={"pk":self.pk})
 		return ('http://%s%s'%(Site.objects.get_current().domain, relative))
-
-	# @classmethod
-	# def get_ex"blank_avatar.png"am_mcqs(test):
-	# 	mcqs = MCQ.objects.filter(exam_pk=test)
-	# 	mcqs_list = [mcqs]
-	# 	return mcqs_list
-
-	# mcqs = get_exam_mcqs(Exam.pk)
-
 
 class MCQ(models.Model):
 	CHOICES_MCQ = (
@@ -68,7 +58,6 @@ class FinishedExams(models.Model):
 									related_name='exam_url', null=False)
 	taken_at = models.DateTimeField(auto_now_add=True)
 	result = models.IntegerField()
-	full_mark = models.IntegerField(default=100)
 
 	class Meta:
 		ordering = ['-taken_at']
