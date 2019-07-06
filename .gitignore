@@ -19,3 +19,4 @@ django_thumb.egg-info/
 coverage.svg
 *.DS_Store
 .env
+venv
