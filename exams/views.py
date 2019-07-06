@@ -10,6 +10,7 @@ from rest_framework import mixins
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
+from django.db.models import Q
 from .models import Exam, MCQ, FinishedExams, TakeLaterExams
 from .serializers import (
 		ExamSerializer,
@@ -22,6 +23,7 @@ from .serializers import (
 		AddTakeLaterExamsSerializer,
 )
 from django.contrib.auth.models import User
+
 
 ## to fiind out it he is a teacher or not
 class IsTeacher(BasePermission):
@@ -149,7 +151,6 @@ class UserViewSet(viewsets.ModelViewSet):
 					user=user,
 					exam=c_exam,
 					result=serializer.data.get('result'),
-					full_mark=c_exam.full_mark
 				)
 				test.save()
 				return Response(

@@ -163,7 +163,6 @@ class FinishedExamsSerializer(ModelSerializer):
 	exam_url = SerializerMethodField()
 	exam = SerializerMethodField()
 	taken_at = SerializerMethodField()
-	full_mark = SerializerMethodField()
 	exam_pk = IntegerField(required=False)
 	
 	class Meta:
@@ -172,7 +171,6 @@ class FinishedExamsSerializer(ModelSerializer):
 			'exam_url',
 			'taken_at',
 			'result',
-			'full_mark',
 			'exam_pk'
 		)
 		model = FinishedExams
@@ -189,14 +187,6 @@ class FinishedExamsSerializer(ModelSerializer):
 		try:
 			test = Exam.objects.get(pk=obj.exam.pk)
 			res = test.get_absolute_url()
-		except Exam.DoesNotExist:
-			res = None
-		return res
-
-	def get_full_mark(self, obj):
-		try:
-			test = Exam.objects.get(pk=obj.exam.pk)
-			res = test.full_mark
 		except Exam.DoesNotExist:
 			res = None
 		return res
@@ -281,9 +271,7 @@ class UserSerializer(ModelSerializer):
 			queryset = FinishedExams.objects.filter(
 				user=obj).latest('taken_at')
 			res = queryset.result
-			ful = queryset.full_mark
-			percent = int((res/ful)*100)
-			string = str(percent) + str('%')
+			string = str(res) + str('%')
 		
 		except FinishedExams.DoesNotExist:
 			string = None
