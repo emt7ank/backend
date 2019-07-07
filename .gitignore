@@ -21,3 +21,4 @@ coverage.svg
 static/
 *.DS_Store
 .env
+venv

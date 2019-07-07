@@ -10,6 +10,8 @@ from rest_framework import mixins
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter
+
 from django.db.models import Q
 from .models import Exam, MCQ, FinishedExams, TakeLaterExams
 from .serializers import (
@@ -85,6 +87,8 @@ class ExamModelViewSet(viewsets.ModelViewSet):
 	)
 	queryset = Exam.objects.all()
 	serializer_class = ExamSerializer
+	filter_backends = (SearchFilter,)
+	search_fields = ('subject', 'category', 'instructor__username')
 
 	# to access the mcqs from /exams/<pk>/mcqs/
 	@detail_route(methods=['get'], url_path='mcqs')
