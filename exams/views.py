@@ -23,6 +23,7 @@ from .serializers import (
 		AddTakeLaterExamsSerializer,
 )
 from django.contrib.auth.models import User
+from rest_framework.decorators import list_route
 
 
 ## to fiind out it he is a teacher or not
@@ -131,6 +132,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
 		return Response(serializer.errors,
 			status=status.HTTP_400_BAD_REQUEST)
+
+	@list_route(methods=['GET'], permission_classes=[IsAuthenticated])
+	def me(self, request, *args, **kwargs):
+		self.kwargs.update(pk=request.user.id)
+		return self.retrieve(request, *args, **kwargs)
+
 
 
 	@detail_route(methods=['get', 'post'], url_path='finished-exams')
