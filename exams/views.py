@@ -142,15 +142,12 @@ class UserViewSet(viewsets.ModelViewSet):
 		self.kwargs.update(pk=request.user.id)
 		return self.retrieve(request, *args, **kwargs)
 
-
-
 	@detail_route(methods=['get', 'post'], url_path='finished-exams')
 	def finished_exams(self, request, pk=None):
-		user = self.get_object()
 
 		if request.method == 'GET':
 			serializer = FinishedExamsSerializer(
-				FinishedExams.objects.filter(user=user), many=True)
+				FinishedExams.objects.filter(user=request.user), many=True)
 			return Response(serializer.data)
 		
 		else:
@@ -159,7 +156,7 @@ class UserViewSet(viewsets.ModelViewSet):
 				exam_pk = serializer.data.get('exam_pk')
 				c_exam = Exam.objects.get(pk=exam_pk)
 				test = FinishedExams.objects.create(
-					user=user,
+					user=request.user,
 					exam=c_exam,
 					result=serializer.data.get('result'),
 				)
@@ -175,18 +172,17 @@ class UserViewSet(viewsets.ModelViewSet):
 
 	@detail_route(methods=['get', 'post'], url_path='take-later-exams')
 	def take_later_exams(self, request, pk=None):
-		user = self.get_object()
 
 		if request.method == 'GET':
 			serializer = TakeLaterExamsSerializer(
-				TakeLaterExams.objects.filter(user=user), many=True)
+				TakeLaterExams.objects.filter(user=request.user), many=True)
 			return Response(serializer.data)
 		
 		else:
 			serializer = AddTakeLaterExamsSerializer(data=request.data)
 			if serializer.is_valid():
 				test = TakeLaterExams.objects.create(
-					user=user,
+					user=request.user,
 					exam=Exam.objects.get(pk=serializer.data.get('exam_pk')),
 				)
 				test.save()
