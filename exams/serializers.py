@@ -9,7 +9,7 @@ from rest_framework.serializers	import (
 from .models import Exam, MCQ, FinishedExams, TakeLaterExams, Profile
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-
+from django.shortcuts import get_object_or_404
 
 
 class MCQSerializer(ModelSerializer):
@@ -32,52 +32,37 @@ class MCQSerializer(ModelSerializer):
 		model = MCQ 
 	
 	def update(self, instance, validated_data):
-		instance.question = validated_data['question']
-		instance.choice_a= validated_data['choice_a']
-		instance.choice_b = validated_data['choice_b']
-		instance.choice_c = validated_data['choice_c']
-		instance.choice_d = validated_data['choice_d']
-		instance.choice_e = validated_data['choice_e']
-		instance.answer = validated_data['answer']
+		for attr, value in validated_data.items():
+			setattr(instance, attr, value)
 		instance.exam = Exam.objects.get(pk=validated_data['exam'])
 		instance.save()
-
 		return instance
 	
 	def create(self, validated_data):
-
+		exam_id = validated_data.pop('exam')
 		mcq = MCQ.objects.create(
-			question = validated_data['question'],
-			choice_a = validated_data['choice_a'],
-			choice_b = validated_data['choice_b'],
-			choice_c = validated_data['choice_c'],
-			choice_d = validated_data['choice_d'],
-			choice_e = validated_data['choice_e'],
-			answer = validated_data['answer'],
-			exam = Exam.objects.get(pk=validated_data['exam'])
+			**validated_data,
+			exam_id = exam_id
 		)
 		return mcq
 
 	## making a list of the choices for frontend purposes
 	def get_choices(self, obj):
 		if (obj.choice_e):
-			queryset = (obj.choice_a, obj.choice_b,
-					obj.choice_c, obj.choice_d, obj.choice_e )
-		elif (obj.choice_d):
-			queryset = queryset = (obj.choice_a, obj.choice_b,
-					obj.choice_c, obj.choice_d )
-		elif (obj.choice_c):
-			queryset = queryset = (obj.choice_a, obj.choice_b,
-					obj.choice_c )
-		else:
-			queryset = queryset = (obj.choice_a, obj.choice_b)
-
-		return queryset
+			queryset = [
+				obj.choice_a,
+				obj.choice_b,
+				obj.choice_c or None,
+				obj.choice_d or None,
+				obj.choice_e or None
+			]
+		return list(filter(lambda choice: choice, queryset))
 
 	## api v1 delete
 	def delete(self, request, pk):
-		mcq = MCQ.objects.get(pk=pk)
+		mcq = get_object_or_404(MCQ, pk=pk)
 		mcq.delete()
+
 
 class ExamSerializer(ModelSerializer):
 	instructor = SerializerMethodField()
@@ -98,8 +83,7 @@ class ExamSerializer(ModelSerializer):
 		model = Exam
 
 	def get_instructor(self, obj):
-		instructor = User.objects.get(id=obj.instructor.pk)
-		return instructor.username
+		return obj.instructor.username
 
 	def get_created_at(self, obj):
 		return obj.created_at.strftime("%d/%m/%Y %H:%M")
@@ -108,56 +92,32 @@ class ExamSerializer(ModelSerializer):
 		mcqs = validated_data.pop('mcqs')
 		exam = Exam.objects.create(
 			instructor=self.context['request'].user,
-			category=validated_data['category'],
-			subject=validated_data['subject'],
-			time=validated_data['time']
+			**validated_data
 		)
 		for mcq in mcqs:
-			MCQ.objects.create(exam=exam,**mcq)
-		exam.save()	
+			MCQ.objects.create(exam=exam, **mcq)
 		return exam
 
 	## v1 create or update (put) / (post)
 	def update(self, instance, validated_data):
-		instance.subject = validated_data.get('subject', instance.subject)
-		instance.time = validated_data.get('time', instance.time)
-		instance.category = validated_data.get('category', instance.category)
-		mcqs = validated_data.get('mcqs')
+		mcqs = validated_data.pop('mcqs')
 		for mcq in mcqs:
-			print(mcq)
-			try:
-				mcq_id = mcq.get('id') 
-				item = MCQ.objects.get(exam=instance, pk=mcq_id)
-				item.choice_a=mcq["choice_a"]
-				item.choice_b=mcq["choice_b"]
-				item.choice_c=mcq["choice_c"]
-				item.choice_d=mcq["choice_d"]
-				item.choice_e=mcq["choice_e"]
-				item.question=mcq["question"]	
-				item.answer=mcq["answer"]
-			except:
-				item = MCQ.objects.create(
-					choice_a=mcq["choice_a"],
-					choice_b=mcq["choice_b"],
-					choice_c=mcq["choice_c"],
-					choice_d=mcq["choice_d"],
-					choice_e=mcq["choice_e"],
-					question=mcq["question"],	
-					answer=mcq["answer"],
-					exam=instance,
-				)
-			print(item)
-			item.save()
-		instance.save() 
+			MCQ.objects.update_or_create(
+				exam=instance,
+				pk=mcq.get('id'),
+				defaults=mcq
+			)
+		for attr, value in validated_data.items():
+			setattr(instance, attr, value)
+		instance.save()
 		return instance
 
 	## api v1 delete
 	def delete(self, request, pk):
-		exam = Exam.objects.get(pk=pk)
-		mcqs = MCQ.objects.filter(exam=exam)
-		for mcq in mcqs:
-			mcq.delete()
-		mcq.delete()
+		exam = get_object_or_404(Exam, pk=pk)
+		exam.mcq_set.all().delete()
+		exam.delete()
+
 
 class FinishedExamsSerializer(ModelSerializer):
 	exam_url = SerializerMethodField()
@@ -194,6 +154,7 @@ class FinishedExamsSerializer(ModelSerializer):
 	def get_taken_at(self, obj):
 		return obj.taken_at.strftime("%d/%m/%Y %H:%M")
 
+
 class TakeLaterExamsSerializer(ModelSerializer):
 	exam = SerializerMethodField()
 	exam_url = SerializerMethodField()
@@ -227,13 +188,14 @@ class TakeLaterExamsSerializer(ModelSerializer):
 		return obj.added_at.strftime("%d/%m/%Y %H:%M")	
 
 
-
 class AddFininshedExamsSerializer(Serializer):
 	result = IntegerField(required=True)
 	exam_pk = IntegerField(required=True)
 
+
 class AddTakeLaterExamsSerializer(Serializer):
 	exam_pk = IntegerField(required=True)
+
 
 class ProfileSerializer(ModelSerializer):
 	bio = CharField(required=False)
@@ -241,6 +203,7 @@ class ProfileSerializer(ModelSerializer):
 		exclude = ['id']
 		read_only_fields = ('user',)
 		model = Profile
+
 
 class UserSerializer(ModelSerializer):
 	latest_result = SerializerMethodField()
@@ -260,7 +223,6 @@ class UserSerializer(ModelSerializer):
 					'finished_exams',
 					'take_later_exams',
 					'latest_result',
-
 		)
 		model = User
 		read_only_fields = ('id', 'finished_exams', 'latest_result',)
@@ -268,8 +230,7 @@ class UserSerializer(ModelSerializer):
 
 	def get_latest_result(self, obj):
 		try:
-			queryset = FinishedExams.objects.filter(
-				user=obj).latest('taken_at')
+			queryset = FinishedExams.objects.filter(user=obj).latest('taken_at')
 			res = queryset.result
 			string = str(res) + str('%')
 		
@@ -281,43 +242,6 @@ class UserSerializer(ModelSerializer):
 	def create(self, validated_data):
 		profile_data = validated_data['profile']
 
-		## conditions to complete the empty fields
-		if profile_data.get('is_teacher'):
-			p_is_teacher = profile_data['is_teacher']
-		else:
-			p_is_teacher = False
-
-		if profile_data.get('bio'):
-			p_bio = profile_data['bio']
-		else:
-			p_bio = ""
-		
-		if profile_data.get('career'):
-			p_career = profile_data['career']
-		else:
-			p_career = ""
-		
-		if profile_data.get('location'):
-			p_location = profile_data['location']
-		else:
-			p_location = ""
-		
-		if profile_data.get('birth_date'):
-			p_birth_date = profile_data['birth_date']
-		else:
-			p_birth_date = None
-		
-		if profile_data.get('phone_number'):
-			p_phone_number = profile_data['phone_number']
-		else:
-			p_phone_number = ""
-		
-		if profile_data.get('avatar'):
-			p_avatar = profile_data['avatar']
-		else:
-			p_avatar = "blank_avatar.png"
-
-
 		user = User.objects.create(
 			username=validated_data['username'],
 			email=validated_data['email'],
@@ -328,73 +252,22 @@ class UserSerializer(ModelSerializer):
 		user.save()
 		profile = Profile.objects.create(
 			user=user,
-			is_teacher = p_is_teacher,
-			bio = p_bio,
-			career = p_career,
-			location = p_location,
-			birth_date = p_birth_date,
-			phone_number = p_phone_number,
-			avatar = p_avatar,
+			**profile_data
 		)
 		profile.save()
 		token = Token.objects.create(user=user)
 		return user
-		# finished_exams = FinishedExams.objects.get(user=user)
-		# profile.is_teacher = profile_data.is_teacher
-		# profile.bio = profile_data.bio
-			# location=profile_data.location,
-			# career=profile_data.career,
-			# birth_date=profile_data.birth_date,
-			# phone_number=profile_data.phone_number,
-			# avatar=profile_data.avatar,
 
 
 	def update(self, instance, validated_data):
 		instance.email = validated_data.get('email', instance.email)
 		instance.first_name = validated_data.get('first_name', instance.first_name)
 		instance.last_name = validated_data.get('last_name', instance.last_name)
-		profile_data = validated_data['profile']
-
-	 # conditions to complete the empty fields
-		if profile_data.get('bio'):
-			p_bio = profile_data['bio']
-		else:
-			p_bio = ""
-		
-		if profile_data.get('career'):
-			p_career = profile_data['career']
-		else:
-			p_career = ""
-		
-		if profile_data.get('location'):
-			p_location = profile_data['location']
-		else:
-			p_location = ""
-		
-		if profile_data.get('birth_date'):
-			p_birth_date = profile_data['birth_date']
-		else:
-			p_birth_date = None
-		
-		if profile_data.get('phone_number'):
-			p_phone_number = profile_data['phone_number']
-		else:
-			p_phone_number = ""
-		
-		if profile_data.get('avatar'):
-			p_avatar = profile_data['avatar']
-		else:
-			p_avatar = "blank_avatar.png"
-	 #
-		instance.profile.bio = p_bio
-		instance.profile.location = p_location
-		instance.profile.career = p_career
-		instance.profile.birth_date = p_birth_date
-		instance.profile.phone_number = p_phone_number
-		instance.profile.avatar = p_avatar
 		instance.save()
-		# finished_exams = FinishedExams.objects.get(user=user)
+		profile_data = validated_data['profile']
+		Profile.objects.filter(user=instance).update(**profile_data)
 		return instance
+
 
 class PasswordSerializer(Serializer):
 	old_password = CharField(required=True)

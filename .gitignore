@@ -22,3 +22,4 @@ static/
 *.DS_Store
 .env
 venv
+requests.postman_collection.json
