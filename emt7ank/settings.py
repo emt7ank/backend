@@ -8,18 +8,6 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
-# import dj_database_url
-
-def get_env_variable(var_name):
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        error_msg = "Set the {} env variable".format(var_name)
-        if DEBUG:
-            warnings.warn(error_msg)
-        else:
-            raise ImproperlyConfigured(error_msg)
-
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -85,14 +73,28 @@ SITE_ID = 1
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
+from configparser import RawConfigParser
+
+config = RawConfigParser()
+config.read(os.path.join(BASE_DIR, 'config.ini'))
+
+DEBUG = config.getboolean("global", "DEBUG")
+ALLOWED_HOSTS = config.get('hosts', 'allowed')
+SECRET_KEY = config.get('secrets', 'SECRET_KEY')
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE':   config.get('database', 'DATABASE_ENGINE'),
+        'NAME':     config.get('database', 'DATABASE_NAME'),
+        'USER':     config.get('database', 'DATABASE_USER'),
+        'PASSWORD': config.get('database', 'DATABASE_PASSWORD'),
+        'HOST':     config.get('database', 'DATABASE_HOST'),
+        'PORT':     config.getint('database', 'DATABASE_PORT'),
     }
 }
-# db_from_env = dj_database_url.config()
-# DATABASES["default"].update(db_from_env)
+
+MEDIA_ROOT = os.path.join(BASE_DIR, '../uploads/')
+MEDIA_URL = '/uploads/'
 
 # REST Framework
 REST_FRAMEWORK= {
@@ -144,20 +146,12 @@ USE_TZ = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 CORS_ORIGIN_ALLOW_ALL = True
-INTERNAL_IPS = ['127.0.0.1',]
+INTERNAL_IPS = ['127.0.0.1']
 
-from configparser import RawConfigParser
-
-config = RawConfigParser()
-config.read(os.path.join(BASE_DIR, 'config.ini'))
-
-#examples
-
-DEBUG = config.getboolean("global", "DEBUG")
-ALLOWED_HOSTS = config.get('hosts', 'allowed')
-SECRET_KEY = config.get('secrets', 'SECRET_KEY')
-
-
-
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 1025
+EMAIL_BACKEND = config.get('email', 'EMAIL_BACKEND')
+EMAIL_USE_TLS = config.getboolean('email', 'EMAIL_USE_TLS')
+DEFAULT_FROM_EMAIL = config.get('email', 'DEFAULT_FROM_EMAIL')
+EMAIL_HOST = config.get('email', 'EMAIL_HOST')
+EMAIL_HOST_USER = config.get('email', 'EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config.get('email', 'EMAIL_HOST_PASSWORD')
+EMAIL_PORT = config.getint('email', 'EMAIL_PORT')
